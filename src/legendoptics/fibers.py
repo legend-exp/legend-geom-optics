@@ -13,7 +13,12 @@ import pint
 from pint import Quantity
 
 from legendoptics import store
-from legendoptics.utils import InterpolatingGraph, readdatafile
+from legendoptics.scintillate import ScintConfig, ScintParticle
+from legendoptics.utils import (
+    InterpolatingGraph,
+    g4gps_write_emission_spectrum,
+    readdatafile,
+)
 
 log = logging.getLogger(__name__)
 u = pint.get_application_registry()
@@ -129,6 +134,33 @@ def fiber_absorption_path_length() -> Quantity:
     return fiber_absorption_length() * 1.21
 
 
+@store.register_pluggable
+def fiber_core_scint_light_yield() -> Quantity:
+    """fiber scintillation yield for electrons, from TODO
+
+    .. optics-const::
+    """
+    return 8000 / u.MeV
+
+
+@store.register_pluggable
+def fiber_core_scintillation_params() -> ScintConfig:
+    """Get a :class:`ScintConfig` object for fibers.
+
+    See Also
+    --------
+    .fiber_core_scint_light_yield
+    """
+    # setup scintillation response just for electrons.
+    return ScintConfig(
+        flat_top=fiber_core_scint_light_yield(),
+        fano_factor=None,
+        particles=[
+            ScintParticle("electron", yield_factor=1, exc_ratio=None),
+        ],
+    )
+
+
 def pyg4_fiber_cladding1_attach_rindex(mat, reg) -> None:
     """Attach the refractive index to the given fiber cladding 1 material instance.
 
@@ -223,3 +255,58 @@ def pyg4_fiber_core_attach_absorption(
     absorption = np.array([length.m] * λ_full.shape[0]) * length.u
     with u.context("sp"):
         mat.addVecPropertyPint("ABSLENGTH", λ_full.to("eV"), absorption)
+
+
+def pyg4_fiber_core_attach_scintillation(mat, reg) -> None:
+    """Attach Geant4 properties for fiber scintillation response to the given material instance.
+
+    .. note:: This currently only adds scintillation for energy deposited by electrons.
+
+    See Also
+    --------
+    .fiber_core_scint_light_yield
+    .fiber_wls_emission
+    .fiber_wls_timeconstant
+    """
+    from legendoptics.pyg4utils import pyg4_def_scint_by_particle_type, pyg4_sample_λ
+
+    # sample the measured emission spectrum.
+    λ_scint = pyg4_sample_λ(350 * u.nm, 650 * u.nm, 200)
+    scint_em = InterpolatingGraph(*fiber_wls_emission(), min_idx=350 * u.nm)(λ_scint)
+    # make sure that the scintillation spectrum is zero at the boundaries.
+    scint_em[0] = 0
+    scint_em[-1] = 0
+
+    with u.context("sp"):
+        mat.addVecPropertyPint("SCINTILLATIONCOMPONENT1", λ_scint.to("eV"), scint_em)
+
+    # time constant is unknown.
+    mat.addConstPropertyPint("SCINTILLATIONTIMECONSTANT1", fiber_wls_timeconstant())
+
+    # We do not know the fiber fano factor. Geant4 calculates σ = RESOLUTIONSCALE × √mean,
+    # so we set it to 1; otherwise Geant4 will crash.
+    mat.addConstPropertyPint("RESOLUTIONSCALE", 1)
+
+    pyg4_def_scint_by_particle_type(mat, fiber_core_scintillation_params())
+
+
+def g4gps_fiber_emissions_spectrum(filename: str, output_macro: bool) -> None:
+    """Write a fiber emission energy spectrum for G4GeneralParticleSource.
+
+    See Also
+    --------
+    .fiber_wls_emission
+    utils.g4gps_write_emission_spectrum
+    """
+    from legendoptics.pyg4utils import pyg4_sample_λ
+
+    # sample the measured emission spectrum.
+    λ_scint = pyg4_sample_λ(350 * u.nm, 650 * u.nm, 200)
+    scint_em = InterpolatingGraph(*fiber_wls_emission(), min_idx=350 * u.nm)(λ_scint)
+    # make sure that the scintillation spectrum is zero at the boundaries.
+    scint_em[0] = 0
+    scint_em[-1] = 0
+
+    g4gps_write_emission_spectrum(
+        filename, output_macro, λ_scint, scint_em, "fiber_emissions_spectrum"
+    )
