@@ -25,14 +25,21 @@ def test_g4gps(tmp_path) -> None:
 
 
 def test_g4gps_lar(tmp_path) -> None:
-    import legendoptics.lar
+    from legendoptics import lar
 
-    legendoptics.lar.g4gps_lar_emissions_spectrum(tmp_path / "lar.csv", False)
-    legendoptics.lar.g4gps_lar_emissions_spectrum(tmp_path / "lar.mac", True)
+    lar.g4gps_lar_emissions_spectrum(tmp_path / "lar.csv", False)
+    lar.g4gps_lar_emissions_spectrum(tmp_path / "lar.mac", True)
 
 
 def test_g4gps_pen(tmp_path) -> None:
-    import legendoptics.pen
+    from legendoptics import pen
 
-    legendoptics.pen.g4gps_pen_emissions_spectrum(tmp_path / "pen.csv", False)
-    legendoptics.pen.g4gps_pen_emissions_spectrum(tmp_path / "pen.mac", True)
+    pen.g4gps_pen_emissions_spectrum(tmp_path / "pen.csv", False)
+    pen.g4gps_pen_emissions_spectrum(tmp_path / "pen.mac", True)
+
+
+def test_g4gps_fibers(tmp_path) -> None:
+    from legendoptics import fibers
+
+    fibers.g4gps_fiber_emissions_spectrum(tmp_path / "fibers.csv", False)
+    fibers.g4gps_fiber_emissions_spectrum(tmp_path / "fibers.mac", True)

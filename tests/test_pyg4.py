@@ -43,6 +43,7 @@ def test_pyg4_attach_fibers() -> None:
     legendoptics.fibers.pyg4_fiber_core_attach_rindex(mat, reg)
     legendoptics.fibers.pyg4_fiber_core_attach_wls(mat, reg)
     legendoptics.fibers.pyg4_fiber_core_attach_absorption(mat, reg)
+    legendoptics.fibers.pyg4_fiber_core_attach_scintillation(mat, reg)
 
 
 def test_pyg4_attach_tetratex() -> None:
