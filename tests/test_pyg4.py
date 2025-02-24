@@ -144,3 +144,14 @@ def test_pyg4_attach_water() -> None:
     reg, mat = _create_dummy_mat()
     legendoptics.water.pyg4_water_attach_rindex(mat, reg)
     legendoptics.water.pyg4_water_attach_absorption(mat, reg)
+
+
+def test_pyg4_attach_vm2000() -> None:
+    import legendoptics.vm2000
+
+    reg, mat = _create_dummy_mat()
+    legendoptics.vm2000.pyg4_vm2000_attach_reflectivity(mat, reg)
+    legendoptics.vm2000.pyg4_vm2000_attach_absorption_length(mat, reg)
+    legendoptics.vm2000.pyg4_vm2000_attach_particle_scintillationyields(mat, reg)
+    legendoptics.vm2000.pyg4_vm2000_attach_wls(mat, reg)
+    legendoptics.vm2000.pyg4_vm2000_attach_border_params(mat, reg)
